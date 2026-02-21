@@ -1,5 +1,10 @@
 # OpenClaw on Gloud Run
 
+## Tips
+
+- .openclaw 自体を /mnt/.openclaw に都度都度バックアップを指示するといいよ
+- Pixel Terminal で gcloud run services proxy すると、 Google Pixel から使えるよ
+
 ## File Samples
 
 ### credentails/openclaw.json
