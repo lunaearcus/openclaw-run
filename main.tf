@@ -1,3 +1,7 @@
+locals {
+  image_name = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_proxy.repository_id}/openclaw/openclaw:latest"
+}
+
 resource "google_artifact_registry_repository" "ghcr_proxy" {
   project       = var.project_id
   location      = var.region
@@ -14,10 +18,6 @@ resource "google_artifact_registry_repository" "ghcr_proxy" {
     }
   }
 }
-locals {
-  image_name = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_proxy.repository_id}/openclaw/openclaw:latest"
-}
-
 resource "google_storage_bucket" "data" {
   name          = "${var.project_id}-openclaw-storage"
   location      = var.region
@@ -47,6 +47,10 @@ resource "google_cloud_run_v2_service" "openclaw" {
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
     service_account       = google_service_account.sa.email
 
+    scaling {
+      max_instance_count = 1
+    }
+
     containers {
       image = local.image_name
       ports {
@@ -62,7 +66,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
       args = [
         "-c",
         <<-EOT
-        mkdir -p /home/node/.openclaw /home/node/openclaw-workspace && \
+        mkdir -p /home/node/.openclaw && \
         cp -rn /mnt/.openclaw/. /home/node/.openclaw/ 2>/dev/null || true && \
         echo '🦞 Sync complete. Starting Gateway...' && \
         /usr/local/bin/docker-entrypoint.sh node dist/index.js gateway

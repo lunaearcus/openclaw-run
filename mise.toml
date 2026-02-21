@@ -5,6 +5,14 @@ gcloud = "latest"
 [env]
 USER_PROJECT_OVERRIDE = "true"
 
+[tasks."plan"]
+run = """
+  readonly pj="$(gcloud config get project)"
+  if [[ -n "${pj:-}" ]]; then
+    GOOGLE_BILLING_PROJECT="${pj}" terraform plan
+  fi
+"""
+
 [tasks."apply"]
 run = """
   readonly pj="$(gcloud config get project)"
