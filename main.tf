@@ -43,11 +43,18 @@ resource "google_cloud_run_v2_service" "openclaw" {
   location            = var.region
   deletion_protection = false
   launch_stage        = "BETA"
+
+  scaling {
+    min_instance_count = 0
+    max_instance_count = 1
+  }
+
   template {
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
     service_account       = google_service_account.sa.email
 
     scaling {
+      min_instance_count = 0
       max_instance_count = 1
     }
 
