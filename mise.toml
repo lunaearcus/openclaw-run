@@ -1,0 +1,49 @@
+[tools]
+terraform = "latest"
+gcloud = "latest"
+
+[env]
+USER_PROJECT_OVERRIDE = "true"
+
+[tasks."apply"]
+run = """
+  readonly pj="$(gcloud config get project)"
+  if [[ -n "${pj:-}" ]]; then
+    GOOGLE_BILLING_PROJECT="${pj}" terraform apply
+  fi
+"""
+
+[tasks."proxy"]
+run = """
+  gcloud run services proxy openclaw-service --region asia-northeast1 --port=8080
+"""
+
+[tasks."rsync"]
+run = """
+  readonly pj="$(gcloud config get project)"
+  if [[ -n "${pj:-}" ]]; then
+    gcloud storage rsync -r "gs://${pj}-openclaw-storage/" ./credentials/
+  fi
+"""
+
+[tasks."initial-rsync"]
+run = """
+  readonly pj="$(gcloud config get project)"
+  if [[ -n "${pj:-}" ]]; then
+    gcloud storage rsync -r ./credentials/ "gs://${pj}-openclaw-storage/"
+  fi
+"""
+
+[tasks."clean"]
+run = """
+  readonly pj="$(gcloud config get project)"
+  if [[ -n "${pj:-}" ]]; then
+    gcloud storage rm -r "gs://${pj}-openclaw-storage/*"
+  fi
+"""
+
+[tasks."stop"]
+run = """
+  terraform destroy -target google_cloud_run_v2_service.openclaw
+"""
+
