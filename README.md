@@ -1,4 +1,4 @@
-# OpenClaw on Gloud Run
+# OpenClaw on Cloud Run
 
 ## Tips
 
