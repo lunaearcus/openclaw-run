@@ -4,7 +4,7 @@ locals {
 
 resource "google_artifact_registry_repository" "ghcr_proxy" {
   project       = var.project_id
-  location      = var.region
+  location      = var.run_region
   repository_id = "ghcr-proxy"
   format        = "DOCKER"
   mode          = "REMOTE_REPOSITORY"
