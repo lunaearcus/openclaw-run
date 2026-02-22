@@ -1,5 +1,5 @@
 locals {
-  image_name = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_proxy.repository_id}/openclaw/openclaw:latest"
+  image_name = "${var.run_region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_proxy.repository_id}/openclaw/openclaw:latest"
 }
 
 resource "google_artifact_registry_repository" "ghcr_proxy" {
