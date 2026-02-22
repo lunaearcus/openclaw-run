@@ -7,7 +7,7 @@
 
 ## File Samples
 
-### credentails/openclaw.json
+### .openclaw/openclaw.json
 
 ```
 {
@@ -37,7 +37,7 @@
 }
 ```
 
-### credentails/agents/main/agent/auth-profiles.json
+### .openclaw/agents/main/agent/auth-profiles.json
 
 ```
 {

@@ -4,6 +4,7 @@ gcloud = "latest"
 
 [env]
 USER_PROJECT_OVERRIDE = "true"
+CLOUD_RUN_LOCATION = "us-central1"
 
 [tasks."plan"]
 run = """
@@ -21,37 +22,37 @@ run = """
   fi
 """
 
+[tasks."stop"]
+run = """
+  terraform destroy -target google_cloud_run_v2_service.openclaw
+"""
+
 [tasks."proxy"]
 run = """
-  gcloud run services proxy openclaw-service --region asia-northeast1 --port=8080
+  gcloud run services proxy openclaw-service --region "${CLOUD_RUN_LOCATION}" --port=8080
 """
 
 [tasks."rsync"]
 run = """
   readonly pj="$(gcloud config get project)"
   if [[ -n "${pj:-}" ]]; then
-    gcloud storage rsync -r "gs://${pj}-openclaw-storage/" ./credentials/
+    gcloud storage rsync -r "gs://${pj}-openclaw-storage/" ./.openclaw/
   fi
 """
 
-[tasks."initial-rsync"]
+[tasks."rsync-local-to-bucket"]
 run = """
   readonly pj="$(gcloud config get project)"
   if [[ -n "${pj:-}" ]]; then
-    gcloud storage rsync -r ./credentials/ "gs://${pj}-openclaw-storage/"
+    gcloud storage rsync -r ./.openclaw "gs://${pj}-openclaw-storage/"
   fi
 """
 
-[tasks."clean"]
+[tasks."clean-bucket"]
 run = """
   readonly pj="$(gcloud config get project)"
   if [[ -n "${pj:-}" ]]; then
     gcloud storage rm -r "gs://${pj}-openclaw-storage/*"
   fi
-"""
-
-[tasks."stop"]
-run = """
-  terraform destroy -target google_cloud_run_v2_service.openclaw
 """
 

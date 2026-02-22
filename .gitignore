@@ -1,3 +1,4 @@
 terraform.tf*
 .terraform/
-credentials/
+.openclaw/
+backup/

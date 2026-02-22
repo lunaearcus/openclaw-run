@@ -40,7 +40,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
   provider            = google-beta
   name                = "openclaw-service"
   project             = var.project_id
-  location            = var.region
+  location            = var.run_region
   deletion_protection = false
   launch_stage        = "BETA"
 
@@ -97,7 +97,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
       }
       env {
         name  = "GOOGLE_CLOUD_LOCATION"
-        value = var.region
+        value = var.run_region
       }
 
       volume_mounts {
