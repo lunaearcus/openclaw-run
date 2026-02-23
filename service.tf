@@ -12,6 +12,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
     "storage.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ]
 }
 resource "google_project_service" "this" {

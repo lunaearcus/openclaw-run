@@ -1,7 +1,3 @@
-locals {
-  image_name = "${var.run_region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.ghcr_proxy.repository_id}/openclaw/openclaw:latest"
-}
-
 resource "google_artifact_registry_repository" "ghcr_proxy" {
   project       = var.project_id
   location      = var.run_region
@@ -19,22 +15,23 @@ resource "google_artifact_registry_repository" "ghcr_proxy" {
   }
 }
 resource "google_storage_bucket" "data" {
-  name          = "${var.project_id}-openclaw-storage"
-  location      = var.region
-  force_destroy = false
+  name                        = "${var.project_id}-openclaw-storage"
+  location                    = var.region
+  uniform_bucket_level_access = true
+  force_destroy               = false
 }
 resource "google_service_account" "sa" {
   account_id = "openclaw-runner"
 }
-resource "google_project_iam_member" "vertex" {
+resource "google_project_iam_binding" "aiplatform-user" {
   project = var.project_id
   role    = "roles/aiplatform.user"
-  member  = "serviceAccount:${google_service_account.sa.email}"
+  members = [google_service_account.sa.member]
 }
 resource "google_storage_bucket_iam_member" "storage" {
   bucket = google_storage_bucket.data.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.sa.email}"
+  member = google_service_account.sa.member
 }
 resource "google_cloud_run_v2_service" "openclaw" {
   provider            = google-beta
@@ -42,7 +39,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
   project             = var.project_id
   location            = var.run_region
   deletion_protection = false
-  launch_stage        = "BETA"
+  launch_stage        = "GA"
 
   scaling {
     min_instance_count = 0
@@ -53,13 +50,8 @@ resource "google_cloud_run_v2_service" "openclaw" {
     execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
     service_account       = google_service_account.sa.email
 
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 1
-    }
-
     containers {
-      image = local.image_name
+      image = "${google_artifact_registry_repository.ghcr_proxy.registry_uri}/openclaw/openclaw:latest"
       ports {
         container_port = 18789
       }
@@ -74,6 +66,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
         "-c",
         <<-EOT
         mkdir -p /home/node/.openclaw && \
+        rm -rf /mnt/.openclaw/agents/main/sessions/ 2>/dev/null || true && \
         cp -rn /mnt/.openclaw/. /home/node/.openclaw/ 2>/dev/null || true && \
         echo '🦞 Sync complete. Starting Gateway...' && \
         /usr/local/bin/docker-entrypoint.sh node dist/index.js gateway
