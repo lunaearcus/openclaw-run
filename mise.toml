@@ -24,7 +24,7 @@ run = """
 
 [tasks."stop"]
 run = """
-  terraform destroy -target google_cloud_run_v2_service.openclaw
+  terraform destroy -target google_cloud_run_v2_service.openclaw -auto-approve
 """
 
 [tasks."proxy"]
@@ -55,4 +55,3 @@ run = """
     gcloud storage rm -r "gs://${pj}-openclaw-storage/*"
   fi
 """
-
