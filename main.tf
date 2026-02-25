@@ -65,7 +65,10 @@ resource "google_cloud_run_v2_service" "openclaw" {
       args = [
         "-c",
         <<-EOT
-        ln -s /mnt/.openclaw /home/node/.openclaw && \
+        ln -s /mnt/.openclaw /home/node/.openclaw ||: && \
+        rm -rf /home/node/.openclaw/memory ||: && \
+        mkdir -p /home/node/memory ||: && \
+        ln -s /home/node/memory /home/node/.openclaw/memory ||: && \
         echo '🦞 Sync complete. Starting Gateway...' && \
         /usr/local/bin/docker-entrypoint.sh node dist/index.js gateway
         EOT
