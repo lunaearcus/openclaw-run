@@ -1,6 +1,6 @@
 resource "google_artifact_registry_repository" "ghcr_proxy" {
   project       = var.project_id
-  location      = var.run_region
+  location      = var.region
   repository_id = "ghcr-proxy"
   format        = "DOCKER"
   mode          = "REMOTE_REPOSITORY"
@@ -15,10 +15,10 @@ resource "google_artifact_registry_repository" "ghcr_proxy" {
   }
 }
 resource "google_storage_bucket" "data" {
-  name                        = "${var.project_id}-openclaw-storage"
+  name                        = "${var.project_id}-openclaw-data"
   location                    = var.region
   uniform_bucket_level_access = true
-  force_destroy               = false
+  force_destroy               = true
 }
 resource "google_service_account" "sa" {
   account_id = "openclaw-runner"
@@ -37,7 +37,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
   provider            = google-beta
   name                = "openclaw-service"
   project             = var.project_id
-  location            = var.run_region
+  location            = var.region
   deletion_protection = false
   launch_stage        = "GA"
 
@@ -57,24 +57,22 @@ resource "google_cloud_run_v2_service" "openclaw" {
       }
       resources {
         limits = {
-          cpu    = "1"
-          memory = "1024Mi"
+          cpu    = "2"
+          memory = "2048Mi"
         }
       }
       command = ["/bin/sh"]
       args = [
         "-c",
         <<-EOT
-        mkdir -p /home/node/.openclaw && \
-        rm -rf /mnt/.openclaw/agents/main/sessions/ 2>/dev/null || true && \
-        cp -rn /mnt/.openclaw/. /home/node/.openclaw/ 2>/dev/null || true && \
+        ln -s /mnt/.openclaw /home/node/.openclaw && \
         echo '🦞 Sync complete. Starting Gateway...' && \
         /usr/local/bin/docker-entrypoint.sh node dist/index.js gateway
         EOT
       ]
       env {
         name  = "NODE_OPTIONS"
-        value = "--max-old-space-size=768"
+        value = "--max-old-space-size=1536"
       }
       env {
         name  = "HOME"
@@ -90,7 +88,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
       }
       env {
         name  = "GOOGLE_CLOUD_LOCATION"
-        value = var.run_region
+        value = var.region
       }
 
       volume_mounts {
@@ -102,8 +100,9 @@ resource "google_cloud_run_v2_service" "openclaw" {
     volumes {
       name = "openclaw"
       gcs {
-        bucket    = google_storage_bucket.data.name
-        read_only = false
+        bucket        = google_storage_bucket.data.name
+        read_only     = false
+        mount_options = ["file-mode=777", "dir-mode=777", "uid=1000", "gid=1000", "metadata-cache-ttl-secs=120", "stat-cache-max-size-mb=32", "type-cache-max-size-mb=4"]
       }
     }
   }

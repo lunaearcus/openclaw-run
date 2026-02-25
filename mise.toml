@@ -36,7 +36,7 @@ run = """
 run = """
   readonly pj="$(gcloud config get project)"
   if [[ -n "${pj:-}" ]]; then
-    gcloud storage rsync -r "gs://${pj}-openclaw-storage/" ./.openclaw/
+    gcloud storage rsync -r "gs://${pj}-openclaw-data/" ./.openclaw/
   fi
 """
 
@@ -44,7 +44,7 @@ run = """
 run = """
   readonly pj="$(gcloud config get project)"
   if [[ -n "${pj:-}" ]]; then
-    gcloud storage rsync -r ./.openclaw "gs://${pj}-openclaw-storage/"
+    gcloud storage rsync -r ./.openclaw "gs://${pj}-openclaw-data/"
   fi
 """
 
@@ -52,6 +52,6 @@ run = """
 run = """
   readonly pj="$(gcloud config get project)"
   if [[ -n "${pj:-}" ]]; then
-    gcloud storage rm -r "gs://${pj}-openclaw-storage/*"
+    gcloud storage rm -r "gs://${pj}-openclaw-data/*"
   fi
 """

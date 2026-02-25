@@ -11,7 +11,7 @@ resource "google_cloud_scheduler_job" "scheduler" {
   schedule         = "40 3-23/4 * * *"
   time_zone        = "Asia/Tokyo"
   attempt_deadline = "60s"
-  region           = var.run_region
+  region           = var.region
 
   retry_config {
     retry_count = 1
@@ -21,6 +21,7 @@ resource "google_cloud_scheduler_job" "scheduler" {
     http_method = "GET"
     uri         = google_cloud_run_v2_service.openclaw.uri
     oidc_token {
+      audience              = "${google_cloud_run_v2_service.openclaw.uri}/"
       service_account_email = google_service_account.scheduler.email
     }
   }
