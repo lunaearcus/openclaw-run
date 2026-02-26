@@ -4,54 +4,187 @@ gcloud = "latest"
 
 [env]
 USER_PROJECT_OVERRIDE = "true"
-CLOUD_RUN_LOCATION = "us-central1"
+TFVARS_FILENAME = "terraform.tfvars"
 
-[tasks."plan"]
+# Setup
+[tasks."setup:tfvars"]
+description = "Create tfvars"
 run = """
-  readonly pj="$(gcloud config get project)"
-  if [[ -n "${pj:-}" ]]; then
-    GOOGLE_BILLING_PROJECT="${pj}" terraform plan
+  # Create tfvars
+  if [[ ! -f "${TFVARS_FILENAME}" ]]; then
+    cat <<'_EOF' > "${TFVARS_FILENAME}"
+project_id = ""
+region     = "us-central1"
+billing_id = ""
+my_email   = ""
+_EOF
+    echo 'Created!'
   fi
 """
 
-[tasks."apply"]
+[tasks."setup:openclaw"]
+description = "Create openclaw.json"
 run = """
-  readonly pj="$(gcloud config get project)"
-  if [[ -n "${pj:-}" ]]; then
-    GOOGLE_BILLING_PROJECT="${pj}" terraform apply
+  # Create openclaw.json
+  readonly OPENCLAW_FILENAME='.openclaw/openclaw.json'
+  if [[ ! -f "${OPENCLAW_FILENAME}" ]]; then
+    mkdir -p "${OPENCLAW_FILENAME%/*}"
+    readonly uuid="$(<'/proc/sys/kernel/random/uuid' tr -d -)"
+    cat <<_EOF > "${OPENCLAW_FILENAME}"
+{
+  "gateway": {
+    "mode": "local",
+    "port": 18789,
+    "bind": "lan",
+    "auth": {
+      "mode": "token",
+      "token": "${uuid}"
+    },
+    "controlUi": {
+      "enabled": true,
+      "allowInsecureAuth": true,
+      "allowedOrigins": [
+        "http://localhost:8080"
+      ]
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "google-vertex/gemini-2.5-flash"
+      }
+    }
+  }
+}
+_EOF
+    echo 'Created!'
   fi
 """
 
-[tasks."stop"]
+[tasks."setup:profiles"]
+description = "Create auth-profiles.json"
+run = """
+  # Create auth-profiles.json
+  readonly PROFILE_FILENAME='.openclaw/agents/main/agent/auth-profiles.json'
+  if [[ ! -f "${PROFILE_FILENAME}" ]]; then
+    mkdir -p "${PROFILE_FILENAME%/*}"
+    cat <<'_EOF' > "${PROFILE_FILENAME}"
+{
+  "version": 1,
+  "profiles": {
+    "google-vertex:default": {
+      "type": "api_key",
+      "provider": "google-vertex",
+      "key": "<anything-non-empty>"
+    }
+  }
+}
+_EOF
+    echo 'Created!'
+  fi
+"""
+
+[tasks."setup"]
+description = "Initial Setup"
+depends = ["setup:*"]
+
+# Utilities
+[tasks."get-config"]
+description = "Get config from tfvars"
+quiet = true
+hide = true
+usage = """
+  arg "[key]" {
+    choices "project_id" "region"
+    default "project_id"
+  }
+"""
+run = """
+  <"${TFVARS_FILENAME}" awk -F' *= *' -v KEY="${usage_key?}" '($1 == KEY) { gsub(/"/, "", $2); print $2; }'
+"""
+
+[tasks."check-project"]
+description = "Check project config on tfvars"
+quiet = true
+hide = true
+run = """
+  test -n "$(mise get-config project_id)" && test -n "$(mise get-config region)"
+"""
+
+# Terraform
+[tasks."tf:init"]
+description = "terraform init"
+run = """
+  terraform init
+"""
+
+[tasks."tf:fmt"]
+description = "terraform fmt"
+run = """
+  terraform fmt
+"""
+
+[tasks."tf:plan"]
+description = "terraform plan"
+depends = "check-project"
+run = """
+  GOOGLE_BILLING_PROJECT="$(mise get-config)" terraform plan
+"""
+
+[tasks."tf:apply"]
+description = "terraform apply"
+depends = "check-project"
+run = """
+  GOOGLE_BILLING_PROJECT="$(mise get-config)" terraform apply
+"""
+
+# Service Control
+[tasks."run:stop"]
+description = "Destroy the cloud run resource to stop the service"
 run = """
   terraform destroy -target google_cloud_run_v2_service.openclaw -auto-approve
 """
 
-[tasks."proxy"]
+[tasks."run:proxy"]
+description = "Launch cloud run proxy to access the service with id-token via its forwarded port"
+depends = "check-project"
 run = """
-  gcloud run services proxy openclaw-service --region "${CLOUD_RUN_LOCATION}" --port=8080
+  gcloud run services proxy openclaw-service --region "$(mise get-config region)" --port=8080
 """
 
-[tasks."rsync"]
+# Storage Control
+[tasks."storage:backup"]
+description = "Backup storage data to local"
+depends = "check-project"
+usage = """
+  flag "--exec" help="Execute"
+"""
 run = """
-  readonly pj="$(gcloud config get project)"
-  if [[ -n "${pj:-}" ]]; then
-    gcloud storage rsync -r "gs://${pj}-openclaw-data/" ./.openclaw/
-  fi
+  # Backup storage data to local
+  _gcloud() { [[ "${usage_exec:-false}" == 'true' ]] && gcloud "$@" || echo 'DRY_RUN: gcloud' "$@"; }
+  _gcloud storage rsync -r "gs://$(mise get-config)-openclaw-data/" ./.openclaw/
 """
 
-[tasks."rsync-local-to-bucket"]
+[tasks."storage:deploy"]
+description = "Deploy storage data to the bucket"
+depends = "check-project"
+usage = """
+  flag "--exec" help="Execute"
+"""
 run = """
-  readonly pj="$(gcloud config get project)"
-  if [[ -n "${pj:-}" ]]; then
-    gcloud storage rsync -r ./.openclaw "gs://${pj}-openclaw-data/"
-  fi
+  # Deploy storage data to the bucket
+  _gcloud() { [[ "${usage_exec:-false}" == 'true' ]] && gcloud "$@" || echo 'DRY_RUN: gcloud' "$@"; }
+  _gcloud storage rsync -r ./.openclaw "gs://$(mise get-config)-openclaw-data/"
 """
 
-[tasks."clean-bucket"]
+[tasks."storage:clean"]
+description = "Delete all storage data"
+depends = "check-project"
+usage = """
+  flag "--exec" help="Execute"
+"""
 run = """
-  readonly pj="$(gcloud config get project)"
-  if [[ -n "${pj:-}" ]]; then
-    gcloud storage rm -r "gs://${pj}-openclaw-data/*"
-  fi
+  # Delete all storage data
+  _gcloud() { [[ "${usage_exec:-false}" == 'true' ]] && gcloud "$@" || echo 'DRY_RUN: gcloud' "$@"; }
+  _gcloud storage rm -r "gs://$(mise get-config)-openclaw-data/*"
 """
