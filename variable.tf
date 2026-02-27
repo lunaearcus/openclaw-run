@@ -18,3 +18,8 @@ variable "my_email" {
   description = "The email address of the user."
   default     = "your-email@gmail.com"
 }
+variable "manual_instance_count" {
+  type        = number
+  description = "Manual instance count."
+  default     = null
+}

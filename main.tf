@@ -41,9 +41,14 @@ resource "google_cloud_run_v2_service" "openclaw" {
   deletion_protection = false
   launch_stage        = "GA"
 
-  scaling {
-    min_instance_count = 0
-    max_instance_count = 1
+  dynamic "scaling" {
+    for_each = var.manual_instance_count != null ? { MANUAL = var.manual_instance_count } : { AUTOMATIC = 1 }
+    content {
+      scaling_mode          = scaling.key
+      min_instance_count    = scaling.key == "AUTOMATIC" ? 0 : null
+      max_instance_count    = scaling.key == "AUTOMATIC" ? scaling.value : null
+      manual_instance_count = scaling.key == "MANUAL" ? scaling.value : null
+    }
   }
 
   template {
@@ -51,16 +56,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
     service_account       = google_service_account.sa.email
 
     containers {
-      image = "${google_artifact_registry_repository.ghcr_proxy.registry_uri}/openclaw/openclaw:latest"
-      ports {
-        container_port = 18789
-      }
-      resources {
-        limits = {
-          cpu    = "2"
-          memory = "2048Mi"
-        }
-      }
+      image   = "${google_artifact_registry_repository.ghcr_proxy.registry_uri}/openclaw/openclaw:latest"
       command = ["/bin/sh"]
       args = [
         "-c",
@@ -73,27 +69,28 @@ resource "google_cloud_run_v2_service" "openclaw" {
         /usr/local/bin/docker-entrypoint.sh node dist/index.js gateway
         EOT
       ]
-      env {
-        name  = "NODE_OPTIONS"
-        value = "--max-old-space-size=1536"
+      ports {
+        container_port = 18789
       }
-      env {
-        name  = "HOME"
-        value = "/home/node"
+      resources {
+        limits = {
+          cpu    = "2"
+          memory = "2048Mi"
+        }
       }
-      env {
-        name  = "OPENCLAW_NO_BROWSER"
-        value = "true"
+      dynamic "env" {
+        for_each = {
+          NODE_OPTIONS          = "--max-old-space-size=1536",
+          HOME                  = "/home/node",
+          OPENCLAW_NO_BROWSER   = "true",
+          GOOGLE_CLOUD_PROJECT  = var.project_id,
+          GOOGLE_CLOUD_LOCATION = "global",
+        }
+        content {
+          name  = env.key
+          value = env.value
+        }
       }
-      env {
-        name  = "GOOGLE_CLOUD_PROJECT"
-        value = var.project_id
-      }
-      env {
-        name  = "GOOGLE_CLOUD_LOCATION"
-        value = var.region
-      }
-
       volume_mounts {
         name       = "openclaw"
         mount_path = "/mnt/.openclaw"

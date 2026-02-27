@@ -57,7 +57,7 @@ $ mise run:proxy
 
 This listens on `http://localhost:8080` and forwards requests to the Cloud Run URL.
 
-If you want to stop the service (destroy the Cloud Run resource) use:
+If you want to stop the service use:
 
 ```bash
 $ mise run:stop
