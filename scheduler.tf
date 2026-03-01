@@ -8,8 +8,8 @@ resource "google_project_iam_binding" "run-invoker" {
 }
 resource "google_cloud_scheduler_job" "scheduler" {
   name             = "openclaw-scheduler"
-  schedule         = "40 3-23/4 * * *"
-  time_zone        = "Asia/Tokyo"
+  schedule         = var.wakeup_schedule
+  time_zone        = "UTC"
   attempt_deadline = "60s"
   region           = var.region
 

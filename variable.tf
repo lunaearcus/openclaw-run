@@ -18,6 +18,11 @@ variable "my_email" {
   description = "The email address of the user."
   default     = "your-email@gmail.com"
 }
+variable "wakeup_schedule" {
+  type        = string
+  description = "The cron schedule for waking up the service."
+  default     = "40 */2 * * *"
+}
 variable "manual_instance_count" {
   type        = number
   description = "Manual instance count."
