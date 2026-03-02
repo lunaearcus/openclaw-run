@@ -52,8 +52,9 @@ resource "google_cloud_run_v2_service" "openclaw" {
   }
 
   template {
-    execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
-    service_account       = google_service_account.sa.email
+    execution_environment            = "EXECUTION_ENVIRONMENT_GEN2"
+    service_account                  = google_service_account.sa.email
+    max_instance_request_concurrency = 10
 
     containers {
       image   = "${google_artifact_registry_repository.ghcr_proxy.registry_uri}/openclaw/openclaw:latest"
@@ -74,13 +75,15 @@ resource "google_cloud_run_v2_service" "openclaw" {
       }
       resources {
         limits = {
-          cpu    = "2"
-          memory = "2048Mi"
+          cpu    = "1"
+          memory = "1024Mi"
         }
+        cpu_idle          = true
+        startup_cpu_boost = true
       }
       dynamic "env" {
         for_each = {
-          NODE_OPTIONS          = "--max-old-space-size=1536",
+          NODE_OPTIONS          = "--max-old-space-size=768",
           HOME                  = "/home/node",
           OPENCLAW_NO_BROWSER   = "true",
           GOOGLE_CLOUD_PROJECT  = var.project_id,
