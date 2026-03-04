@@ -9,7 +9,7 @@ resource "google_project_iam_binding" "run-invoker" {
 resource "google_cloud_scheduler_job" "scheduler" {
   name             = "openclaw-scheduler"
   schedule         = var.wakeup_schedule
-  time_zone        = "UTC"
+  time_zone        = "Etc/UTC"
   attempt_deadline = "60s"
   region           = var.region
 

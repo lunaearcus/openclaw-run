@@ -74,12 +74,12 @@ resource "google_cloud_run_v2_service" "openclaw" {
         container_port = 18789
       }
       resources {
+        cpu_idle          = false
+        startup_cpu_boost = true
         limits = {
           cpu    = "1"
           memory = "1024Mi"
         }
-        cpu_idle          = true
-        startup_cpu_boost = true
       }
       dynamic "env" {
         for_each = {

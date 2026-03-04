@@ -21,7 +21,7 @@ variable "my_email" {
 variable "wakeup_schedule" {
   type        = string
   description = "The cron schedule for waking up the service."
-  default     = "40 */2 * * *"
+  default     = "30 1-23/2 * * *"
 }
 variable "manual_instance_count" {
   type        = number
