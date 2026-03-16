@@ -5,8 +5,24 @@ gcloud = "latest"
 [env]
 USER_PROJECT_OVERRIDE = "true"
 TFVARS_FILENAME = "terraform.tfvars"
+IAP_SETTINGS_FILENAME = "iap_settings.yaml"
 
 # Setup
+[tasks."setup:iap_settings"]
+description = "Create iap_settings.yaml"
+run = """
+  # Create iap_settings.yaml
+  if [[ ! -f "${IAP_SETTINGS_FILENAME}" ]]; then
+    cat <<_EOF > "${IAP_SETTINGS_FILENAME}"
+access_settings:
+  oauth_settings:
+    client_id: 
+    client_secret: 
+_EOF
+    echo 'Created!'
+  fi
+"""
+
 [tasks."setup:tfvars"]
 description = "Create tfvars"
 run = """
@@ -150,7 +166,7 @@ run = """
   mise tf:apply
 """
 
-[tasks."run:proxy"]
+[tasks."run:proxy"] # When not used IAP
 description = "Launch cloud run proxy to access the service with id-token via its forwarded port"
 depends = "check-project"
 run = """
@@ -192,4 +208,12 @@ run = """
   # Delete all storage data
   _gcloud() { [[ "${usage_exec:-false}" == 'true' ]] && gcloud "$@" || echo 'DRY_RUN: gcloud' "$@"; }
   _gcloud storage rm -r "gs://$(mise get-config)-openclaw-data/*"
+"""
+
+# IAP
+[tasks."iap:init"]
+description = "Set Project IAP Client"
+depends = "check-project"
+run = """
+  gcloud iap settings set "${IAP_SETTINGS_FILENAME}" --project="$(mise get-config)"
 """

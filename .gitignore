@@ -1,3 +1,4 @@
+iap_settings.yaml
 terraform.tf*
 .terraform/
 .openclaw/

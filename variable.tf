@@ -21,10 +21,14 @@ variable "my_email" {
 variable "wakeup_schedule" {
   type        = string
   description = "The cron schedule for waking up the service."
-  default     = "30 1-23/2 * * *"
+  default     = "30 1-23/4 * * *"
 }
 variable "manual_instance_count" {
   type        = number
   description = "Manual instance count."
   default     = null
+}
+variable "iap_client_id" {
+  type = string
+  description = "Client ID for Cloud Run Direct IAP"
 }

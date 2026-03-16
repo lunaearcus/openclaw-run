@@ -11,6 +11,7 @@ locals {
     "billingbudgets.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "iap.googleapis.com",
     "storage.googleapis.com",
     "cloudscheduler.googleapis.com",
   ]

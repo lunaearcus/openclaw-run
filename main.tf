@@ -1,3 +1,6 @@
+data "google_project" "this" {
+  project_id = var.project_id
+}
 resource "google_artifact_registry_repository" "ghcr_proxy" {
   project       = var.project_id
   location      = var.region
@@ -33,6 +36,23 @@ resource "google_storage_bucket_iam_member" "storage" {
   role   = "roles/storage.objectAdmin"
   member = google_service_account.sa.member
 }
+resource "google_iap_web_cloud_run_service_iam_binding" "openclaw" {
+  project                = google_cloud_run_v2_service.openclaw.project
+  location               = google_cloud_run_v2_service.openclaw.location
+  cloud_run_service_name = google_cloud_run_v2_service.openclaw.name
+  role                   = "roles/iap.httpsResourceAccessor"
+  members = [
+    google_service_account.scheduler.member,
+    "user:${var.my_email}",
+  ]
+}
+resource "google_cloud_run_v2_service_iam_binding" "openclaw" {
+  project  = google_cloud_run_v2_service.openclaw.project
+  location = google_cloud_run_v2_service.openclaw.location
+  name     = google_cloud_run_v2_service.openclaw.name
+  role     = "roles/run.invoker"
+  members  = ["serviceAccount:service-${data.google_project.this.number}@gcp-sa-iap.iam.gserviceaccount.com"]
+}
 resource "google_cloud_run_v2_service" "openclaw" {
   provider            = google-beta
   name                = "openclaw-service"
@@ -40,6 +60,7 @@ resource "google_cloud_run_v2_service" "openclaw" {
   location            = var.region
   deletion_protection = false
   launch_stage        = "GA"
+  iap_enabled         = true
 
   dynamic "scaling" {
     for_each = var.manual_instance_count != null ? { MANUAL = var.manual_instance_count } : { AUTOMATIC = 1 }
@@ -109,4 +130,5 @@ resource "google_cloud_run_v2_service" "openclaw" {
       }
     }
   }
+  depends_on = [google_project_service.this]
 }

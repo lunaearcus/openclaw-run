@@ -49,7 +49,7 @@ $ mise tf:apply
 
 ## Running and Accessing
 
-Once deployed the service can be reached via a proxy which handles id‑token authentication:
+(When not used IAP) Once deployed the service can be reached via a proxy which handles id‑token authentication:
 
 ```bash
 $ mise run:proxy
@@ -78,4 +78,4 @@ The `--exec` flag actually runs `gcloud`; without it you get a dry run.
 
 - gcsfuse-mounted directories are used as-is, so there may be some latency
   - If performance is a concern, consider copying the data locally first
-- You can use `gcloud run services proxy` in Pixel Terminal to access the service from a Google Pixel device
+- (When not used IAP) You can use `gcloud run services proxy` in Pixel Terminal to access the service from a Google Pixel device
