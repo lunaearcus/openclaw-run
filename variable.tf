@@ -29,6 +29,6 @@ variable "manual_instance_count" {
   default     = null
 }
 variable "iap_client_id" {
-  type = string
+  type        = string
   description = "Client ID for Cloud Run Direct IAP"
 }

@@ -99,12 +99,12 @@ resource "google_cloud_run_v2_service" "openclaw" {
         startup_cpu_boost = true
         limits = {
           cpu    = "1"
-          memory = "1024Mi"
+          memory = "1536Mi"
         }
       }
       dynamic "env" {
         for_each = {
-          NODE_OPTIONS          = "--max-old-space-size=768",
+          NODE_OPTIONS          = "--max-old-space-size=1024",
           HOME                  = "/home/node",
           OPENCLAW_NO_BROWSER   = "true",
           GOOGLE_CLOUD_PROJECT  = var.project_id,
